@@ -15,17 +15,17 @@ The objective is to solve the puzzle by assigning values to each cell in a way t
 
 ## Project Structure
 
-- `main.py`: The main code implementing the Kropki Sudoku solver.
-- `input.txt`: Input file format for initial board and adjacency constraints.
-- `output.txt`: Output file format for the solution.
-- `README.md`: Documentation for setup and usage.
+- `sudoku_solver.py`: Main implementation of the Kropki Sudoku solver.
+- `Inputs/`: Folder containing input files.
+- `Outputs/`: Folder where the solution files are saved.
+- `README.md`: Documentation.
 
 ## Implementation Details
 
 1. **Backtracking Algorithm**: This uses the Minimum Remaining Values (MRV) and Degree Heuristics for variable selection.
 2. **Domain Ordering**: Domain values are ordered from 1 to 9.
 3. **Constraints**: Implemented to ensure Sudoku, white dot, and black dot rules.
-4. **Optional Inference**: Forward Checking can be enabled to improve performance.
+4. **Inference**: Utilizes Forward Checking to improve performance.
 
 ## Input/Output Format
 
@@ -39,9 +39,11 @@ The solution is a 9x9 grid with values from 1 to 9, satisfying all constraints.
 
 ## Running the Program
 
-1. Place the input file (`input.txt`) in the project directory.
-2. Run the following command:
+### Prerequisites
+- Python 3.7 or higher
+
+### Steps
+1. Place your input file in the `Inputs` folder.
+2. Run the solver using the following command:
    ```bash
-   python main.py
-   ```
-3. The solution will be saved in `output.txt`.
+   python sudoku_solver.py <input_file> [-o <output_file>]

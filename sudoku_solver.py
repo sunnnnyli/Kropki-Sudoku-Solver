@@ -1,4 +1,7 @@
+import os
 import copy
+import argparse
+from datetime import datetime
 
 
 def process_input(file_path):
@@ -304,12 +307,14 @@ def backtrack(board_data):
 
     domain = remaining_values_matrix[row][column]
 
+    # No forward checking
     for value in domain:
         board[row][column] = value
         result = backtrack(board_data)
         if result:
             return result
         board[row][column] = 0
+
     return False
 
 
@@ -328,10 +333,33 @@ def process_output(file_path, result):
 
 
 def main():
-    board_data = process_input("Inputs/Sample_Input.txt")
+    parser = argparse.ArgumentParser(description='Solve a Kropki Sudoku puzzle.')
+    parser.add_argument("input_file", type=str, help="Input file from the Inputs folder")
+    parser.add_argument(
+        "-o", "--output_file", type=str, help="Name of the output file to be saved in the Outputs folder"
+    )
+    args = parser.parse_args()
+
+    input_path = os.path.join("Inputs", args.input_file)
+
+    if args.output_file:
+        output_path = os.path.join("Outputs", args.output_file)
+    else:
+        timestamp = datetime.now().strftime("%Y-%m-%d__%H-%M-%S")
+        output_path = os.path.join("Outputs", f"{timestamp}__Output.txt")
+
+    board_data = process_input(input_path)
+    if not board_data:
+        print(f"Could not process input file '{args.input_file}'")
+        return
+    
     result = backtrack(board_data)
-    print(result)
-    process_output("temp_output", result)
+    if not result:
+        print("No solution found")
+    else:
+        process_output(output_path, result)
+        print(f"Solution saved to '{output_path}'")
+
 
 if __name__ == "__main__":
     main()
