@@ -287,6 +287,68 @@ def find_board_degree_heuristic(board_data, MRV_index_list):
     return degree_heuristic_index_list
 
 
+def forward_check(board_data, row, column, value):
+    """
+    Perform forward checking by pruning domains of neighbors based on the current assignment
+    :param board_data: board and dots data
+    :param row: row of the assigned value
+    :param column: column of the assigned value
+    :param value: the value being assigned
+    :return: a dictionary with original domains for rollback or False if a constraint fails
+    """
+    board = board_data[0]
+    horizontal_dots = board_data[1]
+    vertical_dots = board_data[2]
+    domains_backup = {}
+
+    # Neighbors in same row
+    for col in range(9):
+        if col != column and board[row][col] == 0:
+            domain = find_remaining_value(board_data, row, col)
+            if value in domain:
+                domain.remove(value)
+                domains_backup[(row, col)] = domain[:]
+                if not domain:
+                    return False
+
+    # Neighbors in same column
+    for r in range(9):
+        if r != row and board[r][column] == 0:
+            domain = find_remaining_value(board_data, r, column)
+            if value in domain:
+                domain.remove(value)
+                domains_backup[(r, column)] = domain[:]
+                if not domain:
+                    return False
+
+    # Neighbors in same block
+    block_row_start = (row // 3) * 3
+    block_column_start = (column // 3) * 3
+    for r in range(block_row_start, block_row_start + 3):
+        for c in range(block_column_start, block_column_start + 3):
+            if (r, c) != (row, column) and board[r][c] == 0:
+                domain = find_remaining_value(board_data, r, c)
+                if value in domain:
+                    domain.remove(value)
+                    domains_backup[(r, c)] = domain[:]
+                    if not domain:
+                        return False
+
+    return domains_backup
+
+
+def restore_domains(domains_backup, board_data):
+    """
+    Restore domains of variables after backtracking
+    :param domains_backup: the original domains to restore
+    :param board_data: board and dots data
+    :return: None
+    """
+    board = board_data[0]
+    for (row, column), domain in domains_backup.items():
+        board[row][column] = 0
+
+
 def backtrack(board_data):
     """
     Implementation of the backtracking algorithm using recurssion
@@ -308,11 +370,26 @@ def backtrack(board_data):
     domain = remaining_values_matrix[row][column]
 
     # No forward checking
+    # for value in domain:
+    #     board[row][column] = value
+    #     result = backtrack(board_data)
+    #     if result:
+    #         return result
+    #     board[row][column] = 0
+
+    # With forward checking
     for value in domain:
         board[row][column] = value
-        result = backtrack(board_data)
-        if result:
-            return result
+
+        domains_backup = forward_check(board_data, row, column, value)
+        if domains_backup is not False:
+            result = backtrack(board_data)
+            if result:
+                return result
+
+            # If backtracking occurs restore domains
+            restore_domains(domains_backup, board_data)
+
         board[row][column] = 0
 
     return False
