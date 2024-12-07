@@ -1,7 +1,47 @@
 import os
 import copy
+import logging
 import argparse
+import difflib
 from datetime import datetime
+
+
+log_folder = "Logs"
+os.makedirs(log_folder, exist_ok=True)
+log_file = os.path.join(log_folder, f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log")
+
+logging.basicConfig(
+    filename=log_file,
+    filemode='w',
+    level=logging.INFO,
+    format="%(message)s"
+)
+
+
+def log_board_differences(prev_board, curr_board):
+    """
+    Log the differences between the previous board and the current board.
+    :param prev_board: The previous state of the board
+    :param curr_board: The current state of the board
+    """
+    if prev_board is None:
+        logging.info("No previous board to compare. This is the initial state.")
+        return
+
+    differences = []
+    for row in range(len(curr_board)):
+        for col in range(len(curr_board[row])):
+            if prev_board[row][col] != curr_board[row][col]:
+                differences.append(
+                    f"Cell ({row}, {col}): {prev_board[row][col]} -> {curr_board[row][col]}"
+                )
+
+    if differences:
+        logging.info("Changes detected:")
+        for diff in differences:
+            logging.info(diff)
+    else:
+        logging.info("No changes detected.")
 
 
 def process_input(file_path):
@@ -10,10 +50,12 @@ def process_input(file_path):
     :param file_path: the path of the file
     :return: the board, horizontal_dots, and vertical_dots as a tuple
     """
+    logging.info(f"Processing input file: {file_path}")
     try:
         file = open(file_path, "r")
     except FileNotFoundError:
-        print("File not found")
+        logging.error(f"File not found: {file_path}")
+        print(f"File not found: {file_path}")
         return
 
     content = file.read()
@@ -38,6 +80,7 @@ def process_input(file_path):
         curr_row = [int(elem) for elem in line.split()]
         vertical_dots.append(curr_row)
 
+    logging.info("Input file processed successfully")
     return board, horizontal_dots, vertical_dots
 
 
@@ -50,7 +93,9 @@ def check_assignment_complete(board):
     for row in board:
         for elem in row:
             if elem == 0:
+                logging.info(f"Board assignment complete? No")
                 return False
+    logging.info(f"Board assignment complete? Yes")
     return True
 
 
@@ -62,6 +107,7 @@ def find_remaining_value(board_data, row, column):
     :param column: column value to check
     :return: list of all possible remaining values
     """
+    logging.info(f"Finding remaining values for position ({row}, {column}).")
     remaining_values = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
     board = board_data[0]
@@ -189,6 +235,7 @@ def find_remaining_value(board_data, row, column):
                 if board_number in remaining_values:
                     remaining_values.remove(board_number)
 
+    logging.info(f"\tRemaining values for ({row}, {column}): {remaining_values}")
     return remaining_values
 
 
@@ -198,6 +245,7 @@ def find_board_MRV(board_data):
     :param board_data: board and the dots locations
     :return: All the MRV indexes and the remaining values matrix
     """
+    logging.info("==========Finding MRVs for the board.==========")
     board = board_data[0]
     remaining_values_matrix = []
 
@@ -225,6 +273,7 @@ def find_board_MRV(board_data):
             if len(remaining_values_matrix[row][column]) == min_length:
                 MRV_index_list.append((row, column))
 
+    logging.info(f"==========MRV indexes found: {MRV_index_list}==========")
     return MRV_index_list, remaining_values_matrix
 
 
@@ -235,6 +284,7 @@ def find_board_degree_heuristic(board_data, MRV_index_list):
     :param MRV_index_list: list of indexes to check
     :return: A list with all index with minimum degree heuristics
     """
+    logging.info("Finding degree heuristic for the board.")
     board = board_data[0]
     horizontal_dots = board_data[1]
     vertical_dots = board_data[2]
@@ -284,6 +334,7 @@ def find_board_degree_heuristic(board_data, MRV_index_list):
         if degree_heuristic_data[i] == min_value:
             degree_heuristic_index_list.append(MRV_index_list[i])
 
+    logging.info(f"All indexes with minimum degree heuristics: {degree_heuristic_index_list}")
     return degree_heuristic_index_list
 
 
@@ -296,6 +347,7 @@ def forward_check(board_data, row, column, value):
     :param value: the value being assigned
     :return: a dictionary with original domains for rollback or False if a constraint fails
     """
+    logging.info(f"==========Performing forward check for ({row}, {column}) with value {value}.==========")
     board = board_data[0]
     horizontal_dots = board_data[1]
     vertical_dots = board_data[2]
@@ -334,6 +386,11 @@ def forward_check(board_data, row, column, value):
                     if not domain:
                         return False
 
+    if domains_backup:
+        logging.info(f"==========Forward check successful for ({row}, {column}) with value {value}.==========")
+    else:
+        logging.warning(f"==========Forward check failed for ({row}, {column}) with value {value}.==========")
+
     return domains_backup
 
 
@@ -344,9 +401,11 @@ def restore_domains(domains_backup, board_data):
     :param board_data: board and dots data
     :return: None
     """
+    logging.info("Restoring domains after forward checking.")
     board = board_data[0]
     for (row, column), domain in domains_backup.items():
         board[row][column] = 0
+    logging.info("Domains restored successfully.")
 
 
 def backtrack(board_data):
@@ -355,8 +414,10 @@ def backtrack(board_data):
     :param board_data: board and dots data
     :return: the result of the backtracking algorithm, false if no solution
     """
+    logging.info("Starting backtracking algorithm.")
     board = board_data[0]
     if check_assignment_complete(board):
+        logging.info("Solution found!")
         return board
 
     MRV_index_list, remaining_values_matrix = find_board_MRV(board_data)
@@ -379,7 +440,10 @@ def backtrack(board_data):
 
     # With forward checking
     for value in domain:
+        prev_board = copy.deepcopy(board)   # Just for debugging, can comment out later
         board[row][column] = value
+        logging.info(f"New board state:\n{sudoku_to_str(board)}")
+        log_board_differences(prev_board, board)    # Just for debugging, can comment out later
 
         domains_backup = forward_check(board_data, row, column, value)
         if domains_backup is not False:
@@ -392,6 +456,7 @@ def backtrack(board_data):
 
         board[row][column] = 0
 
+    logging.warning("No solution found during backtracking.")
     return False
 
 
@@ -402,6 +467,7 @@ def process_output(file_path, result):
     :param result: the result produced by the algorithm
     :return: None
     """
+    logging.info(f"Processing output file: {file_path}")
     file = open(file_path, "w")
     for line in result:
         for elem in line:
@@ -409,7 +475,25 @@ def process_output(file_path, result):
         print(file=file)
 
 
+def sudoku_to_str(matrix):
+    """
+    Takes a 2D list as input and returns it in square format
+    """
+    if len(matrix) != len(matrix[0]):
+        raise ValueError("The matrix is not square.")
+    
+    sudoku_string = ""
+    
+    for row in matrix:
+        sudoku_string += " ".join(str(cell) for cell in row) + "\n"
+    
+    return sudoku_string.rstrip("\n")
+
+
 def main():
+    """
+    Main method to process the input file and solve the puzzle.
+    """
     parser = argparse.ArgumentParser(description='Solve a Kropki Sudoku puzzle.')
     parser.add_argument("input_file", type=str, help="Input file from the Inputs folder")
     parser.add_argument(
@@ -427,14 +511,20 @@ def main():
 
     board_data = process_input(input_path)
     if not board_data:
+        logging.error(f"Could not process input file '{args.input_file}'")
         print(f"Could not process input file '{args.input_file}'")
         return
+
+    logging.info(f"Initial board state:\n{sudoku_to_str(board_data[0])}")
     
     result = backtrack(board_data)
     if not result:
-        print("No solution found")
+        print("No solution found.")
     else:
+        logging.info(f"Final board state:\n{sudoku_to_str(result)}")
         process_output(output_path, result)
+        print("Solution found!")
+        print(f"\n{sudoku_to_str(result)}\n")
         print(f"Solution saved to '{output_path}'")
 
 

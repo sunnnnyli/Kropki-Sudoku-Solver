@@ -18,6 +18,7 @@ The objective is to solve the puzzle by assigning values to each cell in a way t
 - `sudoku_solver.py`: Main implementation of the Kropki Sudoku solver.
 - `Inputs/`: Folder containing input files.
 - `Outputs/`: Folder where the solution files are saved.
+- `Logs/`: Folder where the log files are saved.
 - `README.md`: Documentation.
 
 ## Implementation Details
