@@ -172,8 +172,8 @@ def find_remaining_value(board_data, row, column):
                     if 10 > number_allowed_lower > 0 and number_allowed_lower in remaining_values:
                         total_numbers_allowed.append(number_allowed_lower)
                     number_allowed_higher = board[row + 1][column] + 1
-                    if 10 > number_allowed_higher > 0 and number_allowed_lower in remaining_values:
-                        total_numbers_allowed.append(number_allowed_lower)
+                    if 10 > number_allowed_higher > 0 and number_allowed_higher in remaining_values:
+                        total_numbers_allowed.append(number_allowed_higher)
             else:
                 number_allowed_half = board[row + 1][column] / 2
                 if 10 > number_allowed_half > 0 and number_allowed_half % 1 == 0 and number_allowed_half in remaining_values:
