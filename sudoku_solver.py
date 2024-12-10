@@ -353,44 +353,50 @@ def forward_check(board_data, row, column, value):
     vertical_dots = board_data[2]
     domains_backup = {}
 
-    # Neighbors in same row
-    for col in range(9):
-        if col != column and board[row][col] == 0:
-            domain = find_remaining_value(board_data, row, col)
-            if value in domain:
-                domain.remove(value)
-                domains_backup[(row, col)] = domain[:]
-                if not domain:
-                    return False
+    def prune_domain(r, c):
+        """
+        Prune the domain of a cell and backup the original domain.
+        """
+        if (r, c) not in domains_backup:
+            domains_backup[(r, c)] = find_remaining_value(board_data, r, c)
 
-    # Neighbors in same column
-    for r in range(9):
-        if r != row and board[r][column] == 0:
-            domain = find_remaining_value(board_data, r, column)
-            if value in domain:
-                domain.remove(value)
-                domains_backup[(r, column)] = domain[:]
-                if not domain:
-                    return False
+        current_domain = domains_backup[(r, c)][:]  # Copy the original domain
 
-    # Neighbors in same block
+        if value in current_domain:
+            current_domain.remove(value)
+
+        logging.info(f"Pruned domain for ({r}, {c}): {current_domain}")
+
+        if not current_domain:  # If domain is empty, forward checking fails
+            logging.warning(f"Domain for ({r}, {c}) became empty.")
+            return False
+
+        domains_backup[(r, c)] = current_domain
+        return True
+
+    # Check all neighbors and prune domains
+    for i in range(9):
+        if i != column and board[row][i] == 0:  # Row neighbors
+            if not prune_domain(row, i):
+                return False
+        if i != row and board[i][column] == 0:  # Column neighbors
+            if not prune_domain(i, column):
+                return False
+
+    # Block neighbors
     block_row_start = (row // 3) * 3
-    block_column_start = (column // 3) * 3
+    block_col_start = (column // 3) * 3
     for r in range(block_row_start, block_row_start + 3):
-        for c in range(block_column_start, block_column_start + 3):
-            if (r, c) != (row, column) and board[r][c] == 0:
-                domain = find_remaining_value(board_data, r, c)
-                if value in domain:
-                    domain.remove(value)
-                    domains_backup[(r, c)] = domain[:]
-                    if not domain:
-                        return False
+        for c in range(block_col_start, block_col_start + 3):
+            if (r != row or c != column) and board[r][c] == 0:
+                if not prune_domain(r, c):
+                    return False
 
     if domains_backup:
-        logging.info(f"==========Forward check successful for ({row}, {column}) with value {value}.==========")
+        logging.info(f"Forward check successful for ({row}, {column}) with value {value}.")
     else:
-        logging.warning(f"==========Forward check failed for ({row}, {column}) with value {value}.==========")
-
+        logging.warning(f"Forward check failed for ({row}, {column}) with value {value}.")
+        
     return domains_backup
 
 
