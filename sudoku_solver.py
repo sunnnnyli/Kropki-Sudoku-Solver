@@ -344,7 +344,7 @@ def find_board_degree_heuristic(board_data, MRV_index_list):
 
 def forward_check(board_data, row, column, value):
     """
-    Perform forward checking by pruning domains of neighbors based on the current assignment
+    Perform forward checking by pruning domains of neighbors based on the current assignment.
     :param board_data: board and dots data
     :param row: row of the assigned value
     :param column: column of the assigned value
@@ -368,8 +368,7 @@ def forward_check(board_data, row, column, value):
 
         if value in current_domain:
             current_domain.remove(value)
-
-        logging.info(f"Pruned domain for ({r}, {c}): {current_domain}")
+            logging.info(f"Pruned domain for ({r}, {c}): {current_domain}")
 
         if not current_domain:  # If domain is empty, forward checking fails
             logging.warning(f"Domain for ({r}, {c}) became empty.")
@@ -396,17 +395,13 @@ def forward_check(board_data, row, column, value):
                 if not prune_domain(r, c):
                     return False
 
-    if domains_backup:
-        logging.info(f"Forward check successful for ({row}, {column}) with value {value}.")
-    else:
-        logging.warning(f"Forward check failed for ({row}, {column}) with value {value}.")
-        
+    logging.info(f"Forward check successful for ({row}, {column}) with value {value}.")
     return domains_backup
 
 
 def restore_domains(domains_backup, board_data):
     """
-    Restore domains of variables after backtracking
+    Restore domains of variables after backtracking.
     :param domains_backup: the original domains to restore
     :param board_data: board and dots data
     :return: None
@@ -414,7 +409,9 @@ def restore_domains(domains_backup, board_data):
     logging.info("Restoring domains after forward checking.")
     board = board_data[0]
     for (row, column), domain in domains_backup.items():
-        board[row][column] = 0
+        # Restore the original value of the cell
+        if domain:  # Restore only if there was a backup
+            board[row][column] = 0  # Assuming you want to clear the cell
     logging.info("Domains restored successfully.")
 
 
@@ -440,7 +437,7 @@ def backtrack(board_data):
 
     domain = remaining_values_matrix[row][column]
 
-    if (FORWARD_CHECKING):
+    if (not FORWARD_CHECKING):
         for value in domain:
             board[row][column] = value
             result = backtrack(board_data)
@@ -452,7 +449,7 @@ def backtrack(board_data):
         for value in domain:
             prev_board = copy.deepcopy(board)   # Just for debugging, can comment out later
             board[row][column] = value
-            logging.info(f"New board state:\n{sudoku_to_str(board)}")
+            logging.info(f"New board state:\n{sudoku_to_str(board)}")   # Just for debugging, can comment out later
             log_board_differences(prev_board, board)    # Just for debugging, can comment out later
 
             domains_backup = forward_check(board_data, row, column, value)
@@ -514,7 +511,9 @@ def main():
     )
     args = parser.parse_args()
 
+    global FORWARD_CHECKING
     FORWARD_CHECKING = args.forward_checking
+
     if FORWARD_CHECKING:
         print(f"Solving with forward checking...")
         logging.info(f"Solving with forward checking...")
