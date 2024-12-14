@@ -3,7 +3,11 @@ import copy
 import logging
 import argparse
 import difflib
+import time
 from datetime import datetime
+
+
+FORWARD_CHECKING = False
 
 
 log_folder = "Logs"
@@ -436,31 +440,31 @@ def backtrack(board_data):
 
     domain = remaining_values_matrix[row][column]
 
-    # No forward checking
-    # for value in domain:
-    #     board[row][column] = value
-    #     result = backtrack(board_data)
-    #     if result:
-    #         return result
-    #     board[row][column] = 0
-
-    # With forward checking
-    for value in domain:
-        prev_board = copy.deepcopy(board)   # Just for debugging, can comment out later
-        board[row][column] = value
-        logging.info(f"New board state:\n{sudoku_to_str(board)}")
-        log_board_differences(prev_board, board)    # Just for debugging, can comment out later
-
-        domains_backup = forward_check(board_data, row, column, value)
-        if domains_backup is not False:
+    if (FORWARD_CHECKING):
+        for value in domain:
+            board[row][column] = value
             result = backtrack(board_data)
             if result:
                 return result
+            board[row][column] = 0
 
-            # If backtracking occurs restore domains
-            restore_domains(domains_backup, board_data)
+    else:
+        for value in domain:
+            prev_board = copy.deepcopy(board)   # Just for debugging, can comment out later
+            board[row][column] = value
+            logging.info(f"New board state:\n{sudoku_to_str(board)}")
+            log_board_differences(prev_board, board)    # Just for debugging, can comment out later
 
-        board[row][column] = 0
+            domains_backup = forward_check(board_data, row, column, value)
+            if domains_backup is not False:
+                result = backtrack(board_data)
+                if result:
+                    return result
+
+                # If backtracking occurs restore domains
+                restore_domains(domains_backup, board_data)
+
+            board[row][column] = 0
 
     logging.warning("No solution found during backtracking.")
     return False
@@ -505,7 +509,18 @@ def main():
     parser.add_argument(
         "-o", "--output_file", type=str, help="Name of the output file to be saved in the Outputs folder"
     )
+    parser.add_argument(
+        "-fc", "--forward-checking", action="store_true", help="Enable forward checking in the solving algorithm"
+    )
     args = parser.parse_args()
+
+    FORWARD_CHECKING = args.forward_checking
+    if FORWARD_CHECKING:
+        print(f"Solving with forward checking...")
+        logging.info(f"Solving with forward checking...")
+    else:
+        print(f"Solving without forward checking...")
+        logging.info(f"Solving without forward checking...")
 
     input_path = os.path.join("Inputs", args.input_file)
 
@@ -515,6 +530,7 @@ def main():
         timestamp = datetime.now().strftime("%Y-%m-%d__%H-%M-%S")
         output_path = os.path.join("Outputs", f"{timestamp}__Output.txt")
 
+    start = time.time()
     board_data = process_input(input_path)
     if not board_data:
         logging.error(f"Could not process input file '{args.input_file}'")
@@ -532,6 +548,10 @@ def main():
         print("Solution found!")
         print(f"\n{sudoku_to_str(result)}\n")
         print(f"Solution saved to '{output_path}'")
+    
+    end = time.time()
+    print(f"Total time taken: {round(end - start, 2)} seconds")
+    logging.info(f"Total time taken: {round(end - start, 2)} seconds")
 
 
 if __name__ == "__main__":
