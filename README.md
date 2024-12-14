@@ -45,6 +45,8 @@ The solution is a 9x9 grid with values from 1 to 9, satisfying all constraints.
 
 ### Steps
 1. Place your input file in the `Inputs` folder.
-2. Run the solver using the following command:
+2. Run the solver and optionally pass `-fc` to toggle on forward checking.
+3. For example:
    ```bash
-   python sudoku_solver.py <input_file> [-o <output_file>]
+   python sudoku_solver.py <input_file> [-o <output_file>] [-fc]
+   ```
